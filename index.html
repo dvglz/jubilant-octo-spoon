@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Генератор GIFT для Moodle</title>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.1.8/semantic.min.css">
+    <link rel="stylesheet" type="text/css" href="app.css">
+</head>
+<body>
+    <h1 class="ui center aligned header">Генератор GIFT для Moodle</h1>
+    <div id="app" class="ui container form">
+        <div class="field source">    
+            <label>Вопросы:</label>
+            <textarea id="source" name="source" placeholder="Напишите или вставьте вопросы здесь" required></textarea>
+        </div>
+        <div id="message" class="field" style="display: none;">
+            <div class="ui visible message">
+                <div class="header" id="messageHeader"></div>
+                <div id="messageBody"></div>
+            </div>                  
+        </div>
+        <div class="field">
+            <button id="generateButton" class="blue ui button" onclick="generateGift()">
+                <i class="icon download"></i> 
+                Сформировать GIFT
+            </button>
+        </div>
+    </div>
+
+    <script>
+function convertToGift(input) {
+    const questions = input.split("\n\n");
+    let gift = "";
+
+    questions.forEach((q) => {
+        const lines = q.split("\n");
+        const questionText = lines[0].trim();
+        const answers = lines.slice(1);
+        let giftQuestion = `${questionText}\n{`;
+
+        answers.forEach(answer => {
+            const trimmedAnswer = answer.trim();
+            if (trimmedAnswer.startsWith("+")) {
+                // Отметить правильные ответы знаком '='
+                giftQuestion += `\n=${trimmedAnswer.slice(1).trim()}`;
+            } else {
+                // Отметить неправильные ответы знаком '~'
+                giftQuestion += `\n~${trimmedAnswer.trim()}`;
+            }
+        });
+
+        giftQuestion += "\n}\n\n";
+        gift += giftQuestion;
+    });
+
+    return gift;
+}
+
+function generateGift() {
+    const textarea = document.getElementById('source');
+    const messageDiv = document.getElementById('message');
+    const messageHeader = document.getElementById('messageHeader');
+    const messageBody = document.getElementById('messageBody');
+    const questions = textarea.value;
+
+    if (!questions || questions.length <= 0) {
+        alert('Пожалуйста, введите вопросы.');
+        return;
+    }
+
+    try {
+        const gift = convertToGift(questions);
+        const dataUri = 'data:application/octet-stream;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(gift)));
+
+        const link = document.createElement('a');
+        link.href = dataUri;
+        link.download = 'questions.gift';  // Установите имя файла с расширением .gift
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        messageDiv.style.display = 'block';
+        messageDiv.classList.remove('negative', 'warning');
+        messageDiv.classList.add('info');
+        messageHeader.textContent = 'Успех';
+        messageBody.innerHTML = `<p>Ваш файл в формате GIFT готов и загружен с расширением .gift.</p>`;
+    } catch (err) {
+        messageDiv.style.display = 'block';
+        messageDiv.classList.remove('info', 'warning');
+        messageDiv.classList.add('negative');
+        messageHeader.textContent = 'Ошибка';
+        messageBody.textContent = err.message;
+        console.error(err);
+    }
+}
+    </script>
+</body>
+</html>
